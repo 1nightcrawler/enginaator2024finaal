@@ -1,26 +1,37 @@
-
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include "menu.h"
-
-TFT_eSPI tft = TFT_eSPI();
-
-#include "game1.h"
+#include "input.h"
 
 extern TFT_eSPI tft = TFT_eSPI();
 
+extern int DISPLAY_WIDTH = 240;
+extern int DISPLAY_HEIGHT = 320;
+
+extern bool mainMenu = true;
+extern bool settingsMenu = false;
+extern bool scoreboardMenu = false;
+extern bool game1 = false;
+
+int piezoPin = 4;
+
+
 void setup() {
-<<<<<<< HEAD
-    tft.init();
+    Serial.begin(115200);
+
+    initializeInput();
+
+    pinMode(piezoPin, OUTPUT);
+
+    tft.begin();
     tft.setRotation(0);
-    tft.fillScreen(TFT_RED);
-=======
-    menu(tft);
->>>>>>> d0fffc30110d419ebd7e3627713b9e3e254a1e4a
+    tft.setViewport(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
 
 void loop() {
-  gameLoop();
+    if (mainMenu || settingsMenu || scoreboardMenu)
+    {
+    menu();
+    }
 }
-

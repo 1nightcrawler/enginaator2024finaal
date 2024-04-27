@@ -1,10 +1,12 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <Arduino.h>
-#include <TFT_eSPI.h>
-#include <SPI.h>
+void menu();
 
-void menu(TFT_eSPI tft);
+void drawMainMenu();
+void drawSettingsMenu();
+void drawScoreboardMenu();
+
+void mainMenuActions();
 
 #endif
