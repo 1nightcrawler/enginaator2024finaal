@@ -298,11 +298,11 @@ void spawnItems(std::vector<Item>& itemList) {
   }
 }
 
-    static void drawAllItems(std::vector<Item>& itemList) {
-      for (auto& item : itemList) {
-        item.drawItem(offsetX, offsetY);
-      }
-    }
+static void drawAllItems(std::vector<Item>& itemList) {
+  for (auto& item : itemList) {
+    item.drawItem(offsetX, offsetY);
+  }
+}
 
   //collision detection function
 Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& itemList) {
@@ -317,6 +317,19 @@ Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& ite
   }
   return Item{-1, -1, -1, -1}; // No collision detected
 }
+
+bool checkCollision(int playerX, int playerY, int enemyX, int enemyY) {
+    // Check for collision between player and enemy
+    if (enemyX > 160 && enemyY > 120) {
+        // Collision detected
+        Serial.println("Collision detected");
+        return true;
+
+    }
+    return false;
+    Serial.println("No collision detected");
+}
+
 
 
 //enemy spawning function
@@ -355,32 +368,11 @@ void spawnEnemy(int enemyWidth, int enemyHeight, int enemyHealth, int enemyAttac
 Player player(TFT_WIDTH/2, TFT_HEIGHT/2, 50, 50, 100, 10, 7, 1);
 Enemy enemy(0, 0, 2/*move speed*/, 10, 10, 10, 10);
 
-unsigned long gameStartTime = 0;
-unsigned long attackTimer = 3000; //attack timer
-
-void startGameTimer() {
-  gameStartTime = millis();
-}
-
-void triggerEnemyAttack() {
-  unsigned long currentTime = millis(); // get the current time
-  unsigned long elapsedTime = currentTime - gameStartTime; // calculate the elapsed time
-  
-  if (elapsedTime >= attackTimer) {
-    enemy.drawEnemy();
-    enemy.updatePosition();
-    enemy.drawEnemy();
-    enemy.setTarget(player.x, player.y);
-    startGameTimer(); // Reset the game timer
-  }
-}
 
 void gameSetup() {
-  startGameTimer();
   player.drawPlayer();
-  spawnItems(itemList);
-  triggerEnemyAttack();
   tft.fillScreen(TFT_RED);
+  spawnItems(itemList);
 }
 
 void gameLoop() {
@@ -392,8 +384,11 @@ void gameLoop() {
   player.movePlayer();
   // Draw the visible portion of the world
   drawAllItems(itemList);
+  Serial.print("items drawn");
+
   drawWorld();
   Item collidedItem = checkPlayerItemCollision(player, itemList);
+  
   if (collidedItem.x != -1) {
     if(button1Input() == 0){
       collidedItem.collect();
@@ -402,6 +397,19 @@ void gameLoop() {
         return item.x == collidedItem.x && item.y == collidedItem.y;
       }), itemList.end());
     }
+  }
+
+  if (score >= 3) {
+    enemy.drawEnemy();
+    enemy.setTarget(player.x, player.y);
+    enemy.updatePosition();
+    enemy.drawEnemy();
+  }
+
+  if (checkCollision(0, 0, enemy.currentX, enemy.currentY)) {
+      // Collision detected, reset game
+      digitalWrite(9, HIGH);
+      Serial.println("death detected");
   }
 }
 
