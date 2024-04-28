@@ -13,17 +13,13 @@
 #define WORLD_HEIGHT 640   // Example: World is twice the height of the screen
 
 extern TFT_eSPI tft;
-
+extern int piezoPin;
 
 int offsetX;
 int offsetY;
 int score = 0;
 
 
-//sprites
-const uint16_t playerSprite[] = {
-  // Replace this with your player sprite pixel data
-};
 
 const uint16_t enemySprite[] = {
   // Replace this with your enemy sprite pixel data
@@ -32,7 +28,6 @@ const uint16_t enemySprite[] = {
 const uint16_t itemSprite[] = {
   // Replace this with your item sprite pixel data
 };
-
 //player class
 class Player {
   private:
@@ -62,6 +57,8 @@ class Player {
         attack = initialAttack;
         mvmntSpeed = initialMvmntSpeed;
         critDmg = initialCritDmg;
+        
+
     }
 
     void movePlayer(){
@@ -72,13 +69,13 @@ class Player {
         int movementDirection = joystickXYInput();
 
         if(movementDirection != 0){
-            if(movementDirection == 1 && playeryPos >= y){
+            if(movementDirection == 3 && playeryPos >= y){
                 playerYmovement = - 1 * mvmntSpeed;
             }
             if(movementDirection == 2 && playerxPos < WORLD_WIDTH - TFT_WIDTH / 2 - TILE_SIZE){
                 playerXmovement = 1 * mvmntSpeed;
             }
-            if(movementDirection == 3 && playeryPos < WORLD_HEIGHT - TFT_HEIGHT / 2 - TILE_SIZE){
+            if(movementDirection == 1 && playeryPos < WORLD_HEIGHT - TFT_HEIGHT / 2 - TILE_SIZE){
                 playerYmovement = 1 * mvmntSpeed;
             }
             if(movementDirection == 4 && playerxPos >= x){
@@ -90,7 +87,8 @@ class Player {
     }
 
     void drawPlayer() {
-      tft.fillRect(x, y, width, height, TFT_GREEN);
+     tft.fillRect(x, y, width, height, TFT_GREEN);
+
     }
 
     void takeDamage(int damage) {
@@ -312,7 +310,9 @@ Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& ite
         player.playerxPos + player.width > item.x &&
         player.playeryPos < item.y + item.height &&
         player.playeryPos + player.height > item.y) {
+
       return item; // Collision detected
+
     }
   }
   return Item{-1, -1, -1, -1}; // No collision detected
@@ -320,14 +320,17 @@ Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& ite
 
 bool checkCollision(int playerX, int playerY, int enemyX, int enemyY) {
     // Check for collision between player and enemy
-    if (enemyX > 160 && enemyY > 120) {
+    if (enemyX > 160 || enemyY > 120) {
         // Collision detected
+        tone(piezoPin, 250, 300);
         Serial.println("Collision detected");
         return true;
+        
 
     }
-    return false;
     Serial.println("No collision detected");
+    return false;
+
 }
 
 
@@ -384,7 +387,6 @@ void gameLoop() {
   player.movePlayer();
   // Draw the visible portion of the world
   drawAllItems(itemList);
-  Serial.print("items drawn");
 
   drawWorld();
   Item collidedItem = checkPlayerItemCollision(player, itemList);
@@ -392,6 +394,7 @@ void gameLoop() {
   if (collidedItem.x != -1) {
     if(button1Input() == 0){
       collidedItem.collect();
+      tone(piezoPin, 1000, 100);
       // Remove the collided item from the itemList
       itemList.erase(std::remove_if(itemList.begin(), itemList.end(), [&](const Item& item) {
         return item.x == collidedItem.x && item.y == collidedItem.y;
@@ -408,7 +411,8 @@ void gameLoop() {
 
   if (checkCollision(0, 0, enemy.currentX, enemy.currentY)) {
       // Collision detected, reset game
-      digitalWrite(9, HIGH);
+      ESP.restart();
+
       Serial.println("death detected");
   }
 }

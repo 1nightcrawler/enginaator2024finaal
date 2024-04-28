@@ -16,7 +16,7 @@ extern bool settingsMenu = false;
 extern bool scoreboardMenu = false;
 extern bool game1 = false;
 
-int piezoPin = 4;
+extern int piezoPin = 4;
 
 
 void setup() {
