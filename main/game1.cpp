@@ -2,16 +2,23 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <SPI.h>
+#include <vector>
 #include "game1.h"
 #include "input.h"
 
 #define TFT_WIDTH  320
 #define TFT_HEIGHT 240
 #define TILE_SIZE  50   // Example: Each tile is 16x16 pixels
-#define WORLD_WIDTH  480   // Example: World is twice the width of the screen
+#define WORLD_WIDTH  960   // Example: World is twice the width of the screen
 #define WORLD_HEIGHT 640   // Example: World is twice the height of the screen
 
 extern TFT_eSPI tft;
+
+
+int offsetX;
+int offsetY;
+int score = 0;
+
 
 //sprites
 const uint16_t playerSprite[] = {
@@ -41,6 +48,8 @@ class Player {
     int attack;
     int mvmntSpeed;
     int critDmg;
+    int playerYmovement;
+    int playerXmovement;
 
     Player(int startX, int startY, int playerWidth, int playerHeight, int initialHealth, int initialAttack, int initialMvmntSpeed, int initialCritDmg) {
         x = startX;
@@ -56,23 +65,27 @@ class Player {
     }
 
     void movePlayer(){
+
+        int playerXmovement = 0;
+        int playerYmovement = 0;
+
         int movementDirection = joystickXYInput();
 
-        Serial.print("player x: " + String(playerxPos) + " player y: " + String(playeryPos) + "\n" + String(movementDirection) + "\n");
-
         if(movementDirection != 0){
-            if(movementDirection == 1 && playeryPos > y){
-                playeryPos = playeryPos - 1 * mvmntSpeed;
+            if(movementDirection == 1 && playeryPos >= y){
+                playerYmovement = - 1 * mvmntSpeed;
             }
             if(movementDirection == 2 && playerxPos < WORLD_WIDTH - TFT_WIDTH / 2 - TILE_SIZE){
-                playerxPos = playerxPos + 1 * mvmntSpeed;
+                playerXmovement = 1 * mvmntSpeed;
             }
             if(movementDirection == 3 && playeryPos < WORLD_HEIGHT - TFT_HEIGHT / 2 - TILE_SIZE){
-                playeryPos = playeryPos + 1 * mvmntSpeed;
+                playerYmovement = 1 * mvmntSpeed;
             }
-            if(movementDirection == 4 && playerxPos < x){
-                playerxPos = playerxPos - 1 * mvmntSpeed;
+            if(movementDirection == 4 && playerxPos >= x){
+                playerXmovement = - 1 * mvmntSpeed;
             }
+            playeryPos = playeryPos + playerYmovement;
+            playerxPos = playerxPos + playerXmovement;
         }
     }
 
@@ -130,7 +143,6 @@ class Enemy {
 
     private:
 
-
     public:
         int width;
         int height;
@@ -162,23 +174,20 @@ class Enemy {
     }
 
     void updatePosition() {
+        // Calculate the direction to move towards the target
         float dx = targetX - currentX;
         float dy = targetY - currentY;
-        float distance = sqrt(dx * dx + dy * dy);
-    
-        if (distance > speed){
-            // calculate movement
-            float moveX = dx / distance * speed;
-            float moveY = dy / distance * speed;
 
-            // update current pos
-            currentX += moveX;
-            currentY += moveY;
-        } else {
-            // if close, same as target
-            currentX = targetX;
-            currentY = targetY;
-        }
+        // Calculate the distance to the target
+        float distance = sqrt(dx * dx + dy * dy);
+
+        // Normalize the direction vector
+        dx /= distance;
+        dy /= distance;
+
+        // Move towards the target
+        currentX += dx * speed;
+        currentY += dy * speed;
     }
 
     int getEnemyWidth() {
@@ -192,11 +201,11 @@ class Enemy {
     void drawEnemy() {
         tft.fillRect(currentX, currentY, width, height, TFT_BLUE);
 
-/*         //debugging
+         //debugging
         Serial.print("Drawing enemy at: ");
         Serial.print(currentX);
         Serial.print(", ");
-        Serial.println(currentY); */
+        Serial.println(currentY); 
     }
 
     void takeDamage(int damage) {
@@ -229,58 +238,86 @@ class Enemy {
 
 //item/pickup class
 class Item {
-  private:
+private:
+  // Add any private variables or methods as needed
 
+public:
+  int x;
+  int y;
+  int width;
+  int height;
+  bool collected;
 
-  public:
-    int x;
-    int y;
-    int width;
-    int height;
-    bool collected;
+  Item(int startX, int startY, int itemWidth, int itemHeight) {
+    x = startX;
+    y = startY;
+    width = itemWidth;
+    height = itemHeight;
+    collected = false;
+  }
 
-    Item(int startX, int startY, int itemWidth, int itemHeight) {
-      x = startX;
-      y = startY;
-      width = itemWidth;
-      height = itemHeight;
-      collected = false;
-    }
-
-    void drawItem() {
+  // Modify the drawItem method to draw the item only if it's on the screen
+  void drawItem(int offsetX, int offsetY) {
+    // Check if the item is within the visible portion of the screen
+    if (x + width >= offsetX && x <= offsetX + TFT_WIDTH &&
+        y + height >= offsetY && y <= offsetY + TFT_HEIGHT) {
       // Draw the item sprite on the screen if it's not collected
       if (!collected) {
-        tft.pushImage(x, y, width, height, itemSprite);
+        // Modify this to draw the actual item sprite
+        tft.fillRect(x - offsetX, y - offsetY, width, height, TFT_YELLOW);
+      }
+    }
+  }
+
+  bool isCollected() {
+    return collected;
+  }
+
+  void collect() {
+    collected = true;
+    score++;
+  }
+
+  // Add more methods as needed for your game
+};
+
+std::vector<Item> itemList;
+
+void spawnItems(std::vector<Item>& itemList) {
+  const int numItems = 10; 
+
+  // Loop to spawn items
+  for (int i = 0; i < numItems; i++) {
+    // Randomly generate position within the world boundaries
+    int itemX = random(TFT_WIDTH/2, WORLD_WIDTH - TILE_SIZE - TFT_WIDTH/2);
+    int itemY = random(TFT_HEIGHT/2, WORLD_HEIGHT - TILE_SIZE - TFT_HEIGHT/2);
+
+    // Create a new item and add it to the item list
+    Item newItem(itemX, itemY, TILE_SIZE, TILE_SIZE);
+    itemList.push_back(newItem);
+  }
+}
+
+    static void drawAllItems(std::vector<Item>& itemList) {
+      for (auto& item : itemList) {
+        item.drawItem(offsetX, offsetY);
       }
     }
 
-    bool isCollected() {
-      return collected;
+  //collision detection function
+Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& itemList) {
+  for (const auto& item : itemList) {
+    // Check for collision between player and item
+    if (player.playerxPos < item.x + item.width &&
+        player.playerxPos + player.width > item.x &&
+        player.playeryPos < item.y + item.height &&
+        player.playeryPos + player.height > item.y) {
+      return item; // Collision detected
     }
-
-    void collect() {
-      collected = true;
-    }
-
-        int getWidth() {
-      return width;
-    }
-
-    int getHeight() {
-      return height;
-    }
-
-    // Add more methods as needed for your game
-};
-
-//collision detection function
-bool checkCollision(Player& player, Item& item) {
-  // assumes that hitboxes are square
-  return (player.x < item.x + item.width &&
-          player.x + player.width > item.x &&
-          player.y < item.y + item.height &&
-          player.y + player.height > item.y);
+  }
+  return Item{-1, -1, -1, -1}; // No collision detected
 }
+
 
 //enemy spawning function
 void spawnEnemy(int enemyWidth, int enemyHeight, int enemyHealth, int enemyAttackDmg) {
@@ -315,26 +352,57 @@ void spawnEnemy(int enemyWidth, int enemyHeight, int enemyHealth, int enemyAttac
     //enemy.drawEnemy();
 }  
 
-Enemy enemy(0, 0, 5/*move speed*/, 10, 10, 10, 10);
-Player player(TFT_WIDTH/2, TFT_HEIGHT/2, 50, 50, 100, 10, 1, 1);
+Player player(TFT_WIDTH/2, TFT_HEIGHT/2, 50, 50, 100, 10, 7, 1);
+Enemy enemy(0, 0, 2/*move speed*/, 10, 10, 10, 10);
 
-void gameSetup() {
+unsigned long gameStartTime = 0;
+unsigned long attackTimer = 3000; //attack timer
 
-    player.drawPlayer();
+void startGameTimer() {
+  gameStartTime = millis();
+}
+
+void triggerEnemyAttack() {
+  unsigned long currentTime = millis(); // get the current time
+  unsigned long elapsedTime = currentTime - gameStartTime; // calculate the elapsed time
+  
+  if (elapsedTime >= attackTimer) {
+    enemy.drawEnemy();
+    enemy.updatePosition();
     enemy.drawEnemy();
     enemy.setTarget(player.x, player.y);
+    startGameTimer(); // Reset the game timer
+  }
+}
 
-    tft.fillScreen(TFT_RED);
+void gameSetup() {
+  startGameTimer();
+  player.drawPlayer();
+  spawnItems(itemList);
+  triggerEnemyAttack();
+  tft.fillScreen(TFT_RED);
 }
 
 void gameLoop() {
+  //Serial.println(score);
   // Scroll the world
-    player.drawPlayer();
-    enemy.updatePosition();
-    enemy.drawEnemy();
-    player.movePlayer();
+  player.drawPlayer();
+
+
+  player.movePlayer();
   // Draw the visible portion of the world
+  drawAllItems(itemList);
   drawWorld();
+  Item collidedItem = checkPlayerItemCollision(player, itemList);
+  if (collidedItem.x != -1) {
+    if(button1Input() == 0){
+      collidedItem.collect();
+      // Remove the collided item from the itemList
+      itemList.erase(std::remove_if(itemList.begin(), itemList.end(), [&](const Item& item) {
+        return item.x == collidedItem.x && item.y == collidedItem.y;
+      }), itemList.end());
+    }
+  }
 }
 
 // Example: Bitmap data for a single tile (16x16 pixels)
@@ -375,8 +443,8 @@ const uint16_t tileBitmap[TILE_SIZE * TILE_SIZE] = {
 void drawWorld() {
 
     
-    int offsetX = constrain(player.playerxPos - TFT_WIDTH / 2, 0, WORLD_WIDTH - TFT_WIDTH/2);
-    int offsetY = constrain(player.playeryPos - TFT_HEIGHT / 2, 0, WORLD_HEIGHT - TFT_HEIGHT/2);
+  offsetX = constrain(player.playerxPos - TFT_WIDTH / 2, 0, WORLD_WIDTH - TFT_WIDTH/2);
+  offsetY = constrain(player.playeryPos - TFT_HEIGHT / 2, 0, WORLD_HEIGHT - TFT_HEIGHT/2);
   // Clear the screen
 
   // Calculate the number of tiles that fit on the screen

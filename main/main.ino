@@ -7,7 +7,7 @@
 
 extern TFT_eSPI tft = TFT_eSPI();
 
-extern int DISPLAY_WIDTH = 240;
+extern int DISPLAY_WIDTH = 640;
 extern int DISPLAY_HEIGHT = 320;
 
 extern bool mainMenu = true;
