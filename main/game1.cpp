@@ -8,9 +8,9 @@
 
 #define TFT_WIDTH  320
 #define TFT_HEIGHT 240
-#define TILE_SIZE  50   // Example: Each tile is 16x16 pixels
-#define WORLD_WIDTH  960   // Example: World is twice the width of the screen
-#define WORLD_HEIGHT 640   // Example: World is twice the height of the screen
+#define TILE_SIZE  50  
+#define WORLD_WIDTH  960   
+#define WORLD_HEIGHT 640   
 
 extern TFT_eSPI tft;
 extern int piezoPin;
@@ -21,13 +21,7 @@ int score = 0;
 
 
 
-const uint16_t enemySprite[] = {
-  // Replace this with your enemy sprite pixel data
-};
 
-const uint16_t itemSprite[] = {
-  // Replace this with your item sprite pixel data
-};
 //player class
 class Player {
   private:
@@ -172,18 +166,14 @@ class Enemy {
     }
 
     void updatePosition() {
-        // Calculate the direction to move towards the target
         float dx = targetX - currentX;
         float dy = targetY - currentY;
 
-        // Calculate the distance to the target
         float distance = sqrt(dx * dx + dy * dy);
 
-        // Normalize the direction vector
         dx /= distance;
         dy /= distance;
 
-        // Move towards the target
         currentX += dx * speed;
         currentY += dy * speed;
     }
@@ -237,7 +227,6 @@ class Enemy {
 //item/pickup class
 class Item {
 private:
-  // Add any private variables or methods as needed
 
 public:
   int x;
@@ -254,7 +243,6 @@ public:
     collected = false;
   }
 
-  // Modify the drawItem method to draw the item only if it's on the screen
   void drawItem(int offsetX, int offsetY) {
     // Check if the item is within the visible portion of the screen
     if (x + width >= offsetX && x <= offsetX + TFT_WIDTH &&
@@ -276,7 +264,6 @@ public:
     score++;
   }
 
-  // Add more methods as needed for your game
 };
 
 std::vector<Item> itemList;
@@ -315,13 +302,12 @@ Item checkPlayerItemCollision(const Player& player, const std::vector<Item>& ite
 
     }
   }
-  return Item{-1, -1, -1, -1}; // No collision detected
+  return Item{-1, -1, -1, -1}; // no collision detected
 }
 
 bool checkCollision(int playerX, int playerY, int enemyX, int enemyY) {
     // Check for collision between player and enemy
     if (enemyX > 160 || enemyY > 120) {
-        // Collision detected
         tone(piezoPin, 250, 300);
         Serial.println("Collision detected");
         return true;
@@ -335,7 +321,6 @@ bool checkCollision(int playerX, int playerY, int enemyX, int enemyY) {
 
 
 
-//enemy spawning function
 void spawnEnemy(int enemyWidth, int enemyHeight, int enemyHealth, int enemyAttackDmg) {
     // Randomly determine the side of the screen to spawn the enemy
     int side = random(4); // 0: top, 1: right, 2: bottom, 3: left
@@ -379,13 +364,10 @@ void gameSetup() {
 }
 
 void gameLoop() {
-  //Serial.println(score);
-  // Scroll the world
   player.drawPlayer();
 
 
   player.movePlayer();
-  // Draw the visible portion of the world
   drawAllItems(itemList);
 
   drawWorld();
@@ -395,7 +377,6 @@ void gameLoop() {
     if(button1Input() == 0){
       collidedItem.collect();
       tone(piezoPin, 1000, 100);
-      // Remove the collided item from the itemList
       itemList.erase(std::remove_if(itemList.begin(), itemList.end(), [&](const Item& item) {
         return item.x == collidedItem.x && item.y == collidedItem.y;
       }), itemList.end());
@@ -410,15 +391,13 @@ void gameLoop() {
   }
 
   if (checkCollision(0, 0, enemy.currentX, enemy.currentY)) {
-      // Collision detected, reset game
       ESP.restart();
 
       Serial.println("death detected");
   }
 }
 
-// Example: Bitmap data for a single tile (16x16 pixels)
-// This is just a placeholder, replace it with your actual tile data
+
 const uint16_t tileBitmap[TILE_SIZE * TILE_SIZE] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -457,44 +436,34 @@ void drawWorld() {
     
   offsetX = constrain(player.playerxPos - TFT_WIDTH / 2, 0, WORLD_WIDTH - TFT_WIDTH/2);
   offsetY = constrain(player.playeryPos - TFT_HEIGHT / 2, 0, WORLD_HEIGHT - TFT_HEIGHT/2);
-  // Clear the screen
 
-  // Calculate the number of tiles that fit on the screen
   int numTilesX = (TFT_WIDTH + TILE_SIZE * 2 - 1) / TILE_SIZE;
   int numTilesY = (TFT_HEIGHT + TILE_SIZE * 2 - 1) / TILE_SIZE;
 
-  // Calculate the starting tile position
   int startX = offsetX / TILE_SIZE;
   int startY = offsetY / TILE_SIZE;
 
-  // Calculate the offset within the starting tile
   int offsetXInTile = offsetX % TILE_SIZE;
   int offsetYInTile = offsetY % TILE_SIZE;
 
-  // Loop through visible tiles and draw them
   for (int y = 0; y < numTilesY; y++) {
     for (int x = 0; x < numTilesX; x++) {
-      // Calculate the world coordinates of the tile
       int worldX = startX + x;
       int worldY = startY + y;
 
-      // Check if the tile is within the bounds of the world
       if (worldX < 0 || worldX >= WORLD_WIDTH / TILE_SIZE ||
           worldY < 0 || worldY >= WORLD_HEIGHT / TILE_SIZE) {
-        continue; // Skip drawing out-of-bounds tiles
+        continue;
       }
 
-      // Calculate the screen coordinates to draw the tile
       int screenX = x * TILE_SIZE - offsetXInTile;
       int screenY = y * TILE_SIZE - offsetYInTile;
 
-      // Draw the tile
       drawTile(tileBitmap, screenX, screenY);
     }
   }
 }
 
 void drawTile(const uint16_t* bitmap, int x, int y) {
-  // Draw the tile bitmap at the specified position
   tft.pushImage(x, y, TILE_SIZE, TILE_SIZE, bitmap);
 }
