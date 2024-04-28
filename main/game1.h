@@ -1,4 +1,4 @@
 void gameSetup();
 void gameLoop();
-void drawWorld(int offsetX, int offsetY);
+void drawWorld();
 void drawTile(const uint16_t* bitmap, int x, int y);

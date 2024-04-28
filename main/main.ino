@@ -19,17 +19,17 @@ int piezoPin = 4;
 
 
 void setup() {
-    gameSetup();
-    //menu(tft);
-    Serial.begin(115200);
+    tft.init();
 
+    gameSetup();
+    Serial.begin(115200);
     initializeInput();
 
     pinMode(piezoPin, OUTPUT);
 
     tft.begin();
-    tft.setRotation(0);
-    tft.setViewport(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    tft.setRotation(1);
+    //tft.setViewport(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
 
 

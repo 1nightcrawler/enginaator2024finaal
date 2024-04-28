@@ -3,14 +3,14 @@
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include "game1.h"
+#include "input.h"
 
-#define TFT_WIDTH  240
-#define TFT_HEIGHT 320
+#define TFT_WIDTH  320
+#define TFT_HEIGHT 240
 #define TILE_SIZE  50   // Example: Each tile is 16x16 pixels
 #define WORLD_WIDTH  480   // Example: World is twice the width of the screen
 #define WORLD_HEIGHT 640   // Example: World is twice the height of the screen
 
-int playerX = 0;
 extern TFT_eSPI tft;
 
 //sprites
@@ -30,8 +30,9 @@ const uint16_t itemSprite[] = {
 class Player {
   private:
 
-
   public:
+    int playerxPos;
+    int playeryPos;
     int x;
     int y;
     int width;
@@ -44,12 +45,35 @@ class Player {
     Player(int startX, int startY, int playerWidth, int playerHeight, int initialHealth, int initialAttack, int initialMvmntSpeed, int initialCritDmg) {
         x = startX;
         y = startY;
+        playerxPos = x;
+        playeryPos = y;
         width = playerWidth;
         height = playerHeight;
         health = initialHealth;
         attack = initialAttack;
         mvmntSpeed = initialMvmntSpeed;
         critDmg = initialCritDmg;
+    }
+
+    void movePlayer(){
+        int movementDirection = joystickXYInput();
+
+        Serial.print("player x: " + String(playerxPos) + " player y: " + String(playeryPos) + "\n" + String(movementDirection) + "\n");
+
+        if(movementDirection != 0){
+            if(movementDirection == 1 && playeryPos > y){
+                playeryPos = playeryPos - 1 * mvmntSpeed;
+            }
+            if(movementDirection == 2 && playerxPos < WORLD_WIDTH - TFT_WIDTH / 2 - TILE_SIZE){
+                playerxPos = playerxPos + 1 * mvmntSpeed;
+            }
+            if(movementDirection == 3 && playeryPos < WORLD_HEIGHT - TFT_HEIGHT / 2 - TILE_SIZE){
+                playeryPos = playeryPos + 1 * mvmntSpeed;
+            }
+            if(movementDirection == 4 && playerxPos < x){
+                playerxPos = playerxPos - 1 * mvmntSpeed;
+            }
+        }
     }
 
     void drawPlayer() {
@@ -295,17 +319,11 @@ Enemy enemy(0, 0, 5/*move speed*/, 10, 10, 10, 10);
 Player player(TFT_WIDTH/2, TFT_HEIGHT/2, 50, 50, 100, 10, 1, 1);
 
 void gameSetup() {
-    Serial.begin(115200);
-    TFT_eSPI tft = TFT_eSPI();
-    tft.init();
-    tft.fillScreen(TFT_RED);
 
     player.drawPlayer();
     enemy.drawEnemy();
     enemy.setTarget(player.x, player.y);
 
-    tft.init();
-    tft.setRotation(0);
     tft.fillScreen(TFT_RED);
 }
 
@@ -314,15 +332,9 @@ void gameLoop() {
     player.drawPlayer();
     enemy.updatePosition();
     enemy.drawEnemy();
-
-
-    int scrollX = constrain(playerX - (TFT_WIDTH + TILE_SIZE) / 2, 0, WORLD_WIDTH - TFT_WIDTH - TILE_SIZE);
-    int scrollY = constrain(playerX - (TFT_HEIGHT + TILE_SIZE) / 2, 0, WORLD_HEIGHT - TFT_HEIGHT - TILE_SIZE);
-    playerX++;
-    //scrollY++;
-
+    player.movePlayer();
   // Draw the visible portion of the world
-  drawWorld(scrollX, scrollY);
+  drawWorld();
 }
 
 // Example: Bitmap data for a single tile (16x16 pixels)
@@ -360,9 +372,12 @@ const uint16_t tileBitmap[TILE_SIZE * TILE_SIZE] = {
   0x00, 0x00,
 };
 
-void drawWorld(int offsetX, int offsetY) {
+void drawWorld() {
+
+    
+    int offsetX = constrain(player.playerxPos - TFT_WIDTH / 2, 0, WORLD_WIDTH - TFT_WIDTH/2);
+    int offsetY = constrain(player.playeryPos - TFT_HEIGHT / 2, 0, WORLD_HEIGHT - TFT_HEIGHT/2);
   // Clear the screen
-  //tft.fillScreen(TFT_BLACK);
 
   // Calculate the number of tiles that fit on the screen
   int numTilesX = (TFT_WIDTH + TILE_SIZE * 2 - 1) / TILE_SIZE;
